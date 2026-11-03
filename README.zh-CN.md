@@ -4,7 +4,7 @@ tmux-resurrect 配套插件：为每个 pane 保存 Codex / OpenCode 对话 ID�
 
 ## 安装
 
-依赖：tmux、Bash、Python 3.9+、ps、lsof，以及 [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect)。已在 macOS 验证；Linux 使用相同入口，但尚未实机验证。Windows 需使用 WSL。Codex / OpenCode 应在登录 shell 的 PATH 中。
+依赖：tmux、Bash、Python 3.9+、ps、lsof，以及 [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect)。已在 macOS 验证，Windows 下的 WSL 环境也已由用户验证可用。原生 Linux 环境尚未实机验证。Codex / OpenCode 应在登录 shell 的 PATH 中。
 
 在新电脑上解压并安装：
 

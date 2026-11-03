@@ -27,7 +27,7 @@ The plugin restores saved conversations, not running processes. Commands and mod
 - Python 3.9 or later, Bash, `ps`, and `lsof`
 - Codex, OpenCode, or an adapter-supported CLI available in your login shell's `PATH`
 
-Tested on macOS. Linux support has not been verified on a real machine; Windows would require a Unix-like environment such as WSL. Conversation detection also depends on each CLI's local storage format and terminal UI. The OpenCode adapter has been tested with version 1.19.3.
+Tested on macOS, with Windows support verified by a user running WSL. Native Linux installations have not yet been verified. Conversation detection also depends on each CLI's local storage format and terminal UI. The OpenCode adapter has been tested with version 1.19.3.
 
 ## Install
 

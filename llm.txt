@@ -16,7 +16,8 @@ Environment
 -----------
 Required: tmux, Bash, Python >= 3.9, ps, lsof, and tmux-resurrect.
 The agent CLIs must be available in the user's login shell PATH.
-Tested on macOS; Linux and WSL have not been verified on real machines.
+Tested on macOS. Windows support has been verified by a user running WSL.
+Native Linux installations have not yet been verified.
 No Python packages or API keys are required by this plugin.
 
 Before installation
