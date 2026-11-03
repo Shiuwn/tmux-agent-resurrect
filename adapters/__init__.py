@@ -1,0 +1,1 @@
+"""Default adapters, enabled automatically."""

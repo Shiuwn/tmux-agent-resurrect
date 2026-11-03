@@ -1,0 +1,208 @@
+# tmux-agent-resurrect: agent installation guide
+
+Repository: https://github.com/Shiuwn/tmux-agent-resurrect
+Human documentation: README.md
+Chinese documentation: README.zh-CN.md
+Default adapters: Codex and OpenCode
+
+Purpose
+-------
+Install this plugin when the user wants tmux-resurrect to reopen each supported
+agent pane with its saved conversation ID. It extends tmux-resurrect; it does not
+replace it. Installation does not migrate conversations or restore running
+processes. Saving and restoring are manual by default.
+
+Environment
+-----------
+Required: tmux, Bash, Python >= 3.9, ps, lsof, and tmux-resurrect.
+The agent CLIs must be available in the user's login shell PATH.
+Tested on macOS; Linux and WSL have not been verified on real machines.
+No Python packages or API keys are required by this plugin.
+
+Before installation
+-------------------
+1. Locate the user's active tmux configuration. The installer defaults to
+   ~/.tmux.conf. For another file, pass --config with that path.
+2. Inspect existing tmux-resurrect and TPM declarations. Choose one loading
+   method: the installer or TPM. Avoid configuring both for this plugin.
+3. Check dependencies with command -v and python3 --version. Install missing
+   dependencies using the environment's normal package manager and the user's
+   existing authorization. Do not replace an existing plugin directory.
+4. The standard checkout location is ~/.tmux/plugins/tmux-agent-resurrect.
+   If it already exists, inspect its origin and local changes. Reuse a matching
+   checkout; preserve unrelated directories and uncommitted work.
+
+Install with the script
+-----------------------
+For a new checkout:
+
+    git clone https://github.com/Shiuwn/tmux-agent-resurrect.git ~/.tmux/plugins/tmux-agent-resurrect
+
+If tmux-resurrect is not installed:
+
+    git clone https://github.com/tmux-plugins/tmux-resurrect.git ~/.tmux/plugins/tmux-resurrect
+
+Inspect adapters before changing configuration:
+
+    python3 ~/.tmux/plugins/tmux-agent-resurrect/scripts/configure.py --list
+
+The default output must list codex and opencode. Other entries may come from
+user-installed adapters. Resolve syntax errors or duplicate names before
+continuing. Do not execute untrusted custom adapters.
+
+Run the installer:
+
+    python3 ~/.tmux/plugins/tmux-agent-resurrect/install.py
+
+Custom configuration or dependency location:
+
+    python3 /path/to/tmux-agent-resurrect/install.py --config /path/to/tmux.conf --resurrect /path/to/tmux-resurrect
+
+To edit the configuration without applying it to the running server, append
+--no-reload. The installer prints the backup path when it changes an existing
+file. It adds a block delimited by:
+
+    # BEGIN agent-resurrect
+    # END agent-resurrect
+
+If tmux is running, the installer reloads the selected configuration. Otherwise,
+the configuration takes effect on the next start. Existing panes are not
+restarted. Keep the checkout in place because the block records its path.
+
+Install with TPM instead
+------------------------
+Declare these plugins before the existing TPM startup line:
+
+    set -g @plugin 'tmux-plugins/tmux-resurrect'
+    set -g @plugin 'Shiuwn/tmux-agent-resurrect'
+
+Use the user's normal TPM install workflow. Do not also run install.py to add a
+second loading block. agent-resurrect.tmux is the plugin entry point.
+
+Verification
+------------
+For a running tmux server, inspect:
+
+    tmux show-option -gqv @resurrect-save-script-path
+    tmux show-option -gqv @resurrect-hook-post-save-layout
+    tmux show-option -gqv @resurrect-processes
+
+The first option should point to tmux-resurrect's save.sh. The hook should point
+to this plugin's scripts/save.sh. Unless process restoration is explicitly false
+or :all:, the process list should contain "codex resume" and
+"opencode --session", plus prefixes from custom adapters.
+
+Respect an explicit @resurrect-processes=false setting. Do not override it
+silently. Preserve the user's existing hooks and process entries.
+
+Do not run restore.sh against a live workspace merely to verify installation.
+A restore can create windows and launch agent processes. Verify configuration
+first; perform an actual restore only within the user's requested scope or on
+an isolated test server.
+
+The user saves with tmux's prefix followed by Ctrl+s and restores with the
+prefix followed by Ctrl+r. The default prefix is Ctrl+b, but it may be changed.
+Tell the user to make a fresh save after installation; old snapshots lack IDs.
+For OpenCode, keep the conversation sidebar visible while saving.
+
+Snapshots and diagnostics
+-------------------------
+The snapshot directory is controlled by tmux-resurrect's @resurrect-dir.
+If unset, its usual default is ~/.local/share/tmux/resurrect or
+~/.tmux/resurrect, depending on the existing setup.
+
+The last symlink points to the latest snapshot. That snapshot contains commands
+such as:
+
+    codex resume UUID -C 'project-directory'
+    opencode --session ses_ID 'project-directory'
+
+The companion <snapshot>.codex.json report records pane, target, tool, session_id,
+method, and cwd. The historical filename covers all adapters. Do not publish
+these user-specific snapshots or reports.
+
+Skipped panes are intentional when detection is ambiguous, an adapter fails,
+or the current title is unavailable. Use distinct conversation names and keep
+the OpenCode sidebar visible. Do not substitute --last or --continue: multiple
+panes can share a directory and need different conversations.
+
+Update
+------
+If the checkout has no local changes and its origin matches this repository:
+
+    git -C ~/.tmux/plugins/tmux-agent-resurrect pull --ff-only
+    python3 ~/.tmux/plugins/tmux-agent-resurrect/install.py
+
+Use --config again when the original installation used a non-default file.
+User adapters live outside the checkout and are not overwritten by updates.
+
+Uninstall
+---------
+For an installation managed by install.py:
+
+    python3 ~/.tmux/plugins/tmux-agent-resurrect/install.py --uninstall
+
+Pass the original --config path if necessary. Snapshots are retained. If the
+installer added tmux-resurrect's loading line inside its managed block, that
+line is removed with the block; retain a separate loading line if needed.
+
+For TPM, remove the declaration and follow TPM's removal workflow. To clear
+the live hook and owned process entries before removing the checkout:
+
+    python3 ~/.tmux/plugins/tmux-agent-resurrect/scripts/configure.py --uninstall
+
+This cleanup works even if a custom adapter is broken. To fully roll back a
+configuration change, use the backup path printed by the installer.
+
+Add an agent CLI
+----------------
+Built-ins: adapters/codex.py and adapters/opencode.py.
+User adapters: ${XDG_CONFIG_HOME:-~/.config}/tmux-agent-resurrect/adapters/*.py.
+Additional paths: AGENT_RESURRECT_ADAPTER_DIR, using the platform's path
+separator; set it in the tmux server environment.
+
+Copy examples/example_agent.py into the user adapter directory, then edit it.
+The example is a template; its executable and flags are fictional placeholders.
+Every adapter exports an adapter_api.Adapter instance named ADAPTER:
+
+    name: globally unique lowercase name
+    process_names: tuple of executable basenames
+    session_id_pattern: regex used with fullmatch
+    resume_argv: tuple of arguments with whole-token {session_id} and {cwd}
+    resolve(ctx): returns adapter_api.Resolution(session_id, method)
+
+ctx supplies pane_id, title, cwd, matching pids, and run(argv).
+run(argv) returns stdout with a 30-second timeout. Keep lookups read-only.
+Return Resolution(None, "reason") if the current session cannot be confirmed.
+Resolve the actual current conversation; startup arguments can become stale.
+
+The literal prefix before the first placeholder becomes the restore allowlist
+entry. Its tokens may contain only letters, digits, underscores, and hyphens.
+Use an executable in PATH. The core validates IDs and quotes arguments; do not
+build a shell command in the resolver.
+
+After editing, run scripts/configure.py --list, then reload the active tmux
+configuration. Added and removed allowlist entries synchronize automatically.
+No core, installer, or report changes are needed. Files starting with _ are
+ignored; duplicate names and invalid metadata are rejected with file paths.
+
+Moving computers
+----------------
+Installing the plugin gives the new machine the same restore functionality.
+Continuing old conversations also requires project files, snapshots, and each
+CLI's conversation data. Session IDs are not the conversation history.
+Do not copy credentials as part of plugin installation.
+
+Save and exit the tools before backing up databases. A live SQLite database may
+have data in WAL files; copying only the main file is insufficient. Use the
+CLI's supported export/import or version-specific migration procedure.
+If project paths change, update snapshot directories and resume arguments and
+verify one conversation manually before restoring the full workspace.
+
+Tests and packaging
+-------------------
+    python3 -m unittest -v test_codex_resurrect.py test_adapters.py test_plugin.py
+    python3 package.py
+
+Tests use isolated tmux sockets. Packaging uses an explicit source file list
+and excludes local configurations, sessions, credentials, and user adapters.

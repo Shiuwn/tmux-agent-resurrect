@@ -1,0 +1,6 @@
+# Load tmux-resurrect before this companion plugin.
+run-shell 'bash ~/.tmux/plugins/tmux-resurrect/resurrect.tmux'
+run-shell 'bash ~/.tmux/plugins/tmux-agent-resurrect/agent-resurrect.tmux'
+
+# Optional: choose a specific Python interpreter.
+# set -g @agent-resurrect-python /usr/bin/python3
